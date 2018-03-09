@@ -1,110 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<array>
-	<dict>
-		<key>Activate</key>
-		<string>Normal</string>
-		<key>CreationDate</key>
-		<real>542200821.07338095</real>
-		<key>Macros</key>
-		<array>
-			<dict>
-				<key>Actions</key>
-				<array>
-					<dict>
-						<key>Conditions</key>
-						<dict>
-							<key>ConditionList</key>
-							<array>
-								<dict>
-									<key>ConditionType</key>
-									<string>Text</string>
-									<key>Text</key>
-									<string>%ICUDateTime%d%</string>
-									<key>TextConditionType</key>
-									<string>Matches</string>
-									<key>TextValue</key>
-									<string>30</string>
-								</dict>
-							</array>
-							<key>ConditionListMatch</key>
-							<string>All</string>
-						</dict>
-						<key>ElseActions</key>
-						<array/>
-						<key>MacroActionType</key>
-						<string>IfThenElse</string>
-						<key>ThenActions</key>
-						<array>
-							<dict>
-								<key>DisplayKind</key>
-								<string>None</string>
-								<key>IncludeStdErr</key>
-								<false/>
-								<key>MacroActionType</key>
-								<string>ExecuteAppleScript</string>
-								<key>NotifyOnFailure</key>
-								<false/>
-								<key>Path</key>
-								<string></string>
-								<key>StopOnFailure</key>
-								<false/>
-								<key>Text</key>
-								<string>on dateISOformat(theDate)	set y to text -4 thru -1 of ("0000" &amp; (year of theDate))	set m to text -2 thru -1 of ("00" &amp; ((month of theDate) as integer))	set d to text -2 thru -1 of ("00" &amp; (day of theDate))	return y &amp; "-" &amp; m &amp; "-" &amp; dend dateISOformaton run	-- 弹窗让用户选择统计时间，目前提供 "今天", "昨天", "本周", "上周", "本月", "上月" 选择项目	activate	set theReportScope to "本月"		-- 计算时间差值	set theStartDate to current date		-- 取本日零时时间戳	set hours of theStartDate to 0	set minutes of theStartDate to 0	set seconds of theStartDate to 0		-- 默认结束时间为本日 23:59:59	set theEndDate to theStartDate + (23 * hours) + (59 * minutes) + 59		-- 按照用户选择选取不同的时间范围	if theReportScope = "今天" then		set theDateRange to dateISOformat(theStartDate)	else if theReportScope = "昨天" then		set theStartDate to theStartDate - 1 * days		set theEndDate to theEndDate - 1 * days		set theDateRange to dateISOformat(theStartDate)	else if theReportScope = "本周" then		-- 一直往前找，直到周一		repeat until (weekday of theStartDate) = Monday			set theStartDate to theStartDate - 1 * days		end repeat		-- 一直往后找，直到周日		repeat until (weekday of theEndDate) = Sunday			set theEndDate to theEndDate + 1 * days		end repeat		set startFormattedString to dateISOformat(theStartDate)		set endFormattedString to dateISOformat(theEndDate)		set theDateRange to startFormattedString &amp; " 至 " &amp; endFormattedString	else if theReportScope = "上周" then		-- 先将准标提前到上周		set theStartDate to theStartDate - 7 * days		set theEndDate to theEndDate - 7 * days		-- 紧接着和生成本周类似，生成上周的两个准标		repeat until (weekday of theStartDate) = Monday			set theStartDate to theStartDate - 1 * days		end repeat		repeat until (weekday of theEndDate) = Sunday			set theEndDate to theEndDate + 1 * days		end repeat		set startFormattedString to dateISOformat(theStartDate)		set endFormattedString to dateISOformat(theEndDate)		set theDateRange to startFormattedString &amp; " 至 " &amp; endFormattedString	else if theReportScope = "本月" then		-- 初始日期调整到本月 1 日		repeat until (day of theStartDate) = 1			set theStartDate to theStartDate - 1 * days		end repeat		-- 将结束日期调整到本月最后一天		repeat until (month of theEndDate) is not equal to (month of theStartDate)			set theEndDate to theEndDate + 1 * days		end repeat		-- 已经到下一个月的第一天了，往回倒退一天		set theEndDate to theEndDate - 1 * days				set startFormattedString to dateISOformat(theStartDate)		set endFormattedString to dateISOformat(theEndDate)		set theDateRange to startFormattedString &amp; " 至 " &amp; endFormattedString	else if theReportScope = "上月" then		-- 如果 1 月份，需要调整到上一年		if (month of theStartDate) = January then			set (year of theStartDate) to (year of theStartDate) - 1			set (month of theStartDate) to December		else			set (month of theStartDate) to (month of theStartDate) - 1		end if		-- 调整到正确的年份和月份之后，保持和上面本月周报获取锚点一致		set month of theEndDate to month of theStartDate		set year of theEndDate to year of theStartDate		repeat until (day of theStartDate) = 1			set theStartDate to theStartDate - 1 * days		end repeat		repeat until (month of theEndDate) is not equal to (month of theStartDate)			set theEndDate to theEndDate + 1 * days		end repeat		set theEndDate to theEndDate - 1 * days				set startFormattedString to dateISOformat(theStartDate)		set endFormattedString to dateISOformat(theEndDate)		set theDateRange to startFormattedString &amp; " 至 " &amp; endFormattedString	end if		set ignoreList to {""}	set currentFormattedString to dateISOformat(current date)	set reportName to theReportScope &amp; "工作报告" &amp; currentFormattedString &amp; ".md"		set theProgressDetail to "# 已完成任务（" &amp; theDateRange &amp; ")" &amp; return		tell application "OmniFocus"		-- 添加标识用来确保不会产生空的报表		set modifiedTasksDetected to false				tell default document			set theModifiedProjects to every flattened project where its modification date is greater than theStartDate			-- 遍历所有的 Project			repeat with a from 1 to length of theModifiedProjects				set theCurrentProject to item a of theModifiedProjects								-- 取出指定 Project 中所有的已完成 Task 列表				set theCompletedTasks to (every flattened task of theCurrentProject where its completed = true and completion date is greater than theStartDate and completion date is less than theEndDate and number of tasks = 0)								-- 循环每一个 Task				if theCompletedTasks is not equal to {} then					set modifiedTasksDetected to true					-- Append the project name to the task list					set theProgressDetail to theProgressDetail &amp; "## " &amp; name of theCurrentProject &amp; return										repeat with b from 1 to length of theCompletedTasks						set theCurrentTask to item b of theCompletedTasks												-- 目前只追加 Task 的 name						set theProgressDetail to theProgressDetail &amp; b &amp; ". [" &amp; name of theCurrentTask &amp; "](" &amp; note of theCurrentTask &amp; ")" &amp; return					end repeat										set theProgressDetail to theProgressDetail &amp; return				end if			end repeat					end tell				-- 将报表内容写入文件，提示用户下载到哪里		set theProgressDetail to theProgressDetail as Unicode text		-- Leopard:Users:myUser:		set theFile to "Macintosh HD:Users:chen:Desktop:" &amp; reportName						tell application "System Events"			set fid to open for access file theFile with write permission			write theProgressDetail to fid as «class utf8»			close access fid		end tell	end tellend run</string>
-								<key>TimeOutAbortsMacro</key>
-								<true/>
-								<key>TrimResults</key>
-								<true/>
-								<key>TrimResultsNew</key>
-								<true/>
-								<key>UseText</key>
-								<true/>
-							</dict>
-						</array>
-						<key>TimeOutAbortsMacro</key>
-						<true/>
-					</dict>
-				</array>
-				<key>CreationDate</key>
-				<real>542200834.05236101</real>
-				<key>ModificationDate</key>
-				<real>542204257.29782403</real>
-				<key>Name</key>
-				<string>每月月底自动生成本月工作报表</string>
-				<key>Triggers</key>
-				<array>
-					<dict>
-						<key>ExecuteType</key>
-						<string>Time</string>
-						<key>MacroTriggerType</key>
-						<string>Time</string>
-						<key>Repeat</key>
-						<false/>
-						<key>RepeatTime</key>
-						<integer>60</integer>
-						<key>TimeFinishHour</key>
-						<integer>17</integer>
-						<key>TimeFinishMinutes</key>
-						<integer>30</integer>
-						<key>TimeHour</key>
-						<integer>18</integer>
-						<key>TimeMinutes</key>
-						<integer>30</integer>
-						<key>WhichDays</key>
-						<integer>127</integer>
-					</dict>
-				</array>
-				<key>UID</key>
-				<string>724BDE3C-1B3E-4855-863D-8EE45C9C1DDE</string>
-			</dict>
-		</array>
-		<key>Name</key>
-		<string>Timely Task</string>
-		<key>ToggleMacroUID</key>
-		<string>D5726ACA-FD97-4F99-8209-9CDC19948E21</string>
-		<key>UID</key>
-		<string>3CBCF620-B720-4D5C-A9A3-5694C89FE70D</string>
-	</dict>
-</array>
-</plist>
